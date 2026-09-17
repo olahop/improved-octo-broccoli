@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<title>Thrift Window for butikker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FAF7F2">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar" id="topbar">
+    <div class="topbar-title">Thrift Window<small>Lagerstyring for butikk</small></div>
+    <div class="shop-badge"><span class="dot">L</span> Loop Vintage</div>
+  </header>
+
+  <main id="view-root">
+
+    <!-- ===== HOME / DASHBOARD ===== -->
+    <section class="view" id="view-home">
+      <div class="view-header">
+        <h1>Hei! 👋</h1>
+        <p>Oversikt over lageret ditt i dag</p>
+      </div>
+      <div class="stat-grid" id="home-stats"></div>
+      <div class="quick-actions">
+        <button class="quick-action" onclick="openAddWizard()">
+          <span class="qa-icon">📸</span>
+          <span class="qa-label">Legg til vare</span>
+          <span class="qa-sub">Ta bilder → KI fyller ut detaljer</span>
+        </button>
+        <button class="quick-action alt" onclick="go('find')">
+          <span class="qa-icon">🔎</span>
+          <span class="qa-label">Finn vare</span>
+          <span class="qa-sub">Slå opp pris med kamera</span>
+        </button>
+      </div>
+      <div class="section-divider"><span>Nylig lagt til</span></div>
+      <div id="home-recent"></div>
+    </section>
+
+    <!-- ===== INVENTORY ===== -->
+    <section class="view" id="view-inventory">
+      <div class="view-header">
+        <h1>Lager</h1>
+        <p>Alle varer registrert i butikken</p>
+      </div>
+      <div class="search-row">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="inv-search-input" placeholder="Søk etter merke, plagg …">
+        </div>
+      </div>
+      <div class="status-tabs">
+        <div class="status-tab active" data-status="all" onclick="setInvStatus('all')">Alle</div>
+        <div class="status-tab" data-status="available" onclick="setInvStatus('available')">Til salgs</div>
+        <div class="status-tab" data-status="not_available" onclick="setInvStatus('not_available')">Ikke klar</div>
+        <div class="status-tab" data-status="sold" onclick="setInvStatus('sold')">Solgt</div>
+      </div>
+      <div class="result-count" id="inv-result-count"></div>
+      <div class="inv-list" id="inv-list"></div>
+      <div class="empty-state" id="inv-empty" style="display:none">
+        <div class="emoji">🧺</div>
+        <h3>Ingen treff</h3>
+        <p>Prøv et annet søk eller filter.</p>
+      </div>
+    </section>
+
+    <!-- ===== FIND ===== -->
+    <section class="view" id="view-find"></section>
+
+  </main>
+
+  <!-- ===== Item detail / edit overlay ===== -->
+  <div class="overlay" id="item-overlay"></div>
+
+  <!-- ===== Add-garment capture wizard overlay ===== -->
+  <div class="overlay" id="wizard-overlay"></div>
+
+  <!-- ===== Tab bar ===== -->
+  <nav class="tabbar" id="tabbar">
+    <button class="tab-btn" data-tab="home" onclick="go('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+      <span>Hjem</span>
+    </button>
+    <button class="tab-btn" data-tab="inventory" onclick="go('inventory')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      <span>Lager</span>
+    </button>
+    <button class="tab-fab" onclick="openAddWizard()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+    <button class="tab-btn" data-tab="find" onclick="go('find')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
+      <span>Finn vare</span>
+    </button>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
