@@ -16,6 +16,9 @@ const ICON = {
   target: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>`,
   check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
   sparkle: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 5.6L19 9l-5.2 1.4L12 16l-1.8-5.6L5 9l5.2-1.4L12 2z"/></svg>`,
+  up: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>`,
+  down: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`,
+  trend: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
 };
 
 // ---------- Toast ----------
@@ -43,13 +46,15 @@ function render() {
   document.querySelectorAll(".tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
   document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
   document.getElementById("item-overlay").classList.remove("open");
+  document.getElementById("find-overlay").classList.remove("open");
+  document.getElementById("wizard-overlay").classList.remove("open");
 
-  const tabs = ["home", "inventory", "find"];
+  const tabs = ["home", "inventory", "trends"];
   if (tabs.includes(name)) {
     document.getElementById("view-" + name).classList.add("active");
     if (name === "home") renderHome();
     if (name === "inventory") renderInventory();
-    if (name === "find") renderFind();
+    if (name === "trends") renderTrends();
   } else if (name === "item") {
     openItemOverlay(param);
   } else {
@@ -212,6 +217,119 @@ function setItemStatus(id, status) {
   if (status === "sold" && !g.soldAt) g.soldAt = Date.now();
   showToast(`Status endret til «${statusLabel(status)}»`);
   openItemOverlay(id);
+}
+
+// ============================================================
+// TRENDS — what customers are viewing/favoriting in the showroom app,
+// so staff can feature it in the window, reprice it, or pull more of it
+// from the backroom.
+// ============================================================
+let windowPicks = new Set();
+
+function renderTrends() {
+  const view = document.getElementById("view-trends");
+  const hot = topTrendingItems(6);
+  const backroom = backroomPriorityItems();
+  const top = CATEGORY_TRENDS[0];
+  const maxScore = Math.max(...CATEGORY_TRENDS.map((c) => c.score), 1);
+
+  view.innerHTML = `
+    <div class="view-header">
+      <h1>Trender</h1>
+      <p>Basert på visninger og favoritter fra kundeappen denne uken</p>
+    </div>
+
+    <div class="stat-grid" style="margin-bottom:20px;">
+      <div class="stat-card">
+        <div class="stat-value">${ICONS[top.id] || "🏷️"} ${top.label}</div>
+        <div class="stat-label">Mest populære kategori</div>
+        <div class="stat-trend">${trendChangeText(top.changePct)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${backroom.length}</div>
+        <div class="stat-label">Klare i bakrommet</div>
+        <div class="stat-trend">i populære kategorier</div>
+      </div>
+    </div>
+
+    <div class="section-divider"><span>Kategoritrender</span></div>
+    <div class="trend-list">
+      ${CATEGORY_TRENDS.map((c) => `
+        <div class="trend-row">
+          <div class="trend-row-top">
+            <span class="trend-row-label">${ICONS[c.id] || "🏷️"} ${c.label}</span>
+            <span class="trend-change ${c.changePct >= 0 ? "up" : "down"}">${c.changePct >= 0 ? ICON.up : ICON.down} ${Math.abs(c.changePct)}%</span>
+          </div>
+          <div class="trend-bar"><div class="trend-bar-fill" style="width:${Math.max(6, Math.round((c.score / maxScore) * 100))}%"></div></div>
+        </div>
+      `).join("")}
+    </div>
+
+    <div class="section-divider"><span>Hetest akkurat nå</span></div>
+    <p class="trend-hint">Vurder å sette disse i vinduet for å trekke inn flere fra gata — og sjekk prisforslagene.</p>
+    <div class="hot-list">
+      ${hot.map((g) => hotItemRow(g)).join("") || `<p style="color:var(--muted); font-size:13px;">Ingen varer med nok aktivitet ennå.</p>`}
+    </div>
+
+    ${backroom.length ? `
+      <div class="section-divider"><span>Prioriter fra bakrommet</span></div>
+      <p class="trend-hint">Disse ligger uprisede i bakrommet, i kategorier kundene etterspør mest — prise dem og få dem ut først.</p>
+      <div class="inv-list">
+        ${backroom.map((g) => `
+          <div class="inv-row" onclick="go('item/${g.id}')">
+            <div class="inv-thumb" style="background:${photoBg(g)}">${g.icon}${photoTag(g)}</div>
+            <div class="inv-info">
+              <div class="inv-brand">${g.brand}</div>
+              <div class="inv-title">${g.title}</div>
+              <div class="inv-meta-row"><span class="status-badge not_available">${categoryLabel(g.category)}</span><span>Hylle ${g.rack}</span></div>
+            </div>
+            <span class="chevron-hint">${ICON.chevron}</span>
+          </div>
+        `).join("")}
+      </div>
+    ` : ""}
+  `;
+}
+
+function trendChangeText(pct) {
+  return pct >= 0 ? `↑ ${pct}% flere visninger denne uken` : `↓ ${Math.abs(pct)}% færre visninger denne uken`;
+}
+
+function hotItemRow(g) {
+  const suggestion = priceSuggestion(g);
+  const picked = windowPicks.has(g.id);
+  return `
+  <div class="hot-item">
+    <div class="inv-thumb" style="background:${photoBg(g)}" onclick="go('item/${g.id}')">${g.icon}${photoTag(g)}</div>
+    <div class="inv-info" onclick="go('item/${g.id}')">
+      <div class="inv-brand">${g.brand}</div>
+      <div class="inv-title">${g.title}</div>
+      <div class="inv-meta-row" style="margin-bottom:4px;">
+        <span>👁️ ${g.views}</span><span>♥ ${g.favorites}</span><span class="inv-price">${g.priceKr} kr</span>
+      </div>
+      ${suggestion && suggestion.type !== "ok" ? priceFlagHTML(suggestion) : ""}
+    </div>
+    <button class="window-pick-btn ${picked ? "active" : ""}" onclick="event.stopPropagation(); toggleWindowPick('${g.id}', this)">
+      ${picked ? "✓ I vinduet" : "🪟 Vis i vindu"}
+    </button>
+  </div>`;
+}
+function priceFlagHTML(s) {
+  const up = s.type === "increase";
+  return `<div class="price-flag ${up ? "up" : "down"}">${up ? ICON.up : ICON.down} ${up ? "Vurder prisøkning" : "Vurder priskutt"} (snitt ${s.avg} kr)</div>`;
+}
+function toggleWindowPick(id, btn) {
+  if (windowPicks.has(id)) {
+    windowPicks.delete(id);
+    btn.classList.remove("active");
+    btn.textContent = "🪟 Vis i vindu";
+    showToast("Fjernet fra dagens vindu-utvalg");
+  } else {
+    windowPicks.add(id);
+    btn.classList.add("active");
+    btn.textContent = "✓ I vinduet";
+    showToast("Lagt til i dagens vindu-utvalg");
+  }
 }
 
 // ============================================================
@@ -430,18 +548,32 @@ function publishWizard() {
 }
 
 // ============================================================
-// FIND GARMENT — photo match flow
+// FIND GARMENT — photo match flow (opened as an overlay from Lager's
+// search bar — the concept lives on as a quick lookup tool, not a tab)
 // ============================================================
 let findState = { mode: "idle", photo: null, result: null, poolSold: false };
 
+function openFindOverlay() {
+  findState = { mode: "idle", photo: null, result: null, poolSold: false };
+  renderFind();
+  document.getElementById("find-overlay").classList.add("open");
+}
+function closeFindOverlay() {
+  document.getElementById("find-overlay").classList.remove("open");
+}
+
 function renderFind() {
-  const overlay = document.getElementById("view-find");
+  const overlay = document.getElementById("find-overlay");
   const poolLabel = findState.poolSold ? "Søker i solgte varer" : "Søker i varer til salgs";
+  const topbar = `
+    <div class="overlay-topbar">
+      <button class="icon-btn" onclick="closeFindOverlay()">${ICON.close}</button>
+      <h2>Finn vare</h2>
+    </div>`;
   if (findState.mode === "idle") {
-    overlay.innerHTML = `
-      <div class="view-header">
-        <h1>Finn vare</h1>
-        <p>Ta bilde av en vare på stativet for å slå opp pris og detaljer</p>
+    overlay.innerHTML = topbar + `
+      <div class="view-header" style="padding:16px 18px 0;">
+        <p style="margin:0; color:var(--muted); font-size:14px;">Ta bilde av en vare på stativet for å slå opp pris og detaljer</p>
       </div>
       <div class="find-scan" onclick="captureFindPhoto()">
         <span class="scan-emoji">📷</span>
@@ -457,8 +589,8 @@ function renderFind() {
       </div>
     `;
   } else if (findState.mode === "scanning") {
-    overlay.innerHTML = `
-      <div class="view-header"><h1>Finn vare</h1><p>${poolLabel} …</p></div>
+    overlay.innerHTML = topbar + `
+      <div class="view-header" style="padding:16px 18px 0;"><p style="margin:0; color:var(--muted); font-size:14px;">${poolLabel} …</p></div>
       <div class="find-scan">
         <img src="${findState.photo}" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0.6;">
         <div class="scan-frame"></div>
@@ -470,8 +602,8 @@ function renderFind() {
     `;
   } else if (findState.mode === "result") {
     const g = findState.result;
-    overlay.innerHTML = `
-      <div class="view-header"><h1>Treff funnet</h1><p>${poolLabel}</p></div>
+    overlay.innerHTML = topbar + `
+      <div class="view-header" style="padding:16px 18px 0;"><p style="margin:0; color:var(--muted); font-size:14px;">${poolLabel}</p></div>
       <div class="match-card">
         <div class="inv-thumb" style="width:64px; height:78px; background:${photoBg(g)}">${g.icon}${photoTag(g)}</div>
         <div style="flex:1; min-width:0;">
@@ -494,7 +626,7 @@ function renderFind() {
           </div>
         </div>
         <button class="btn btn-secondary btn-block" onclick="go('item/${g.id}')">Se full detalj</button>
-        ${g.status !== "sold" ? `<button class="btn btn-danger btn-block" onclick="setItemStatus('${g.id}','sold'); resetFind()">Merk som solgt</button>` : ""}
+        ${g.status !== "sold" ? `<button class="btn btn-danger btn-block" onclick="closeFindOverlay(); setItemStatus('${g.id}','sold')">Merk som solgt</button>` : ""}
         <button class="btn btn-ghost btn-block" style="color:var(--muted)" onclick="resetFind()">Søk på nytt</button>
       </div>
     `;

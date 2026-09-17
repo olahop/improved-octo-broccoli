@@ -86,6 +86,12 @@ const INVENTORY = INVENTORY_SEED.map((row, i) => {
   const daysAgo = Math.floor(rand() * 30);
   const addedAt = Date.now() - daysAgo * 86400000;
   const rack = RACKS[Math.floor(rand() * RACKS.length)];
+  // Simulated customer-app engagement (views/favorites this week) — stands
+  // in for real analytics from the showroom app. Only published items
+  // (available/sold) are visible to customers, so backroom items get none.
+  const isVisible = status !== "not_available";
+  const views = isVisible ? Math.floor(rand() * 140) : 0;
+  const favorites = isVisible ? Math.floor(rand() * views * 0.25) : 0;
   return {
     id: "inv" + (i + 1),
     title, brand, category, gender, size, condition, colors,
@@ -96,6 +102,7 @@ const INVENTORY = INVENTORY_SEED.map((row, i) => {
     soldAt: status === "sold" ? addedAt + Math.floor(rand() * 10) * 86400000 : null,
     note: rand() > 0.8 ? "Lite slitasje ved venstre lomme." : "",
     icon: ICONS[category] || "🏷️",
+    views, favorites,
     // Drop a photo at images/<id>.jpg (e.g. images/inv1.jpg) to replace the
     // placeholder — it's picked up automatically, no code changes needed.
     image: "images/inv" + (i + 1) + ".jpg",
@@ -110,6 +117,55 @@ function colorLabel(id) { return (COLORS.find((c) => c.id === id) || {}).label |
 function colorSwatch(id) { return (COLORS.find((c) => c.id === id) || {}).hex || "#ccc"; }
 function statusLabel(id) {
   return { available: "Til salgs", not_available: "Ikke klar", sold: "Solgt" }[id] || id;
+}
+
+// ---------- Trends ----------
+// Demand score blends views and favorites (weighted higher, since a
+// favorite is a stronger signal) from the simulated customer-app activity.
+function demandScore(g) { return g.views + g.favorites * 3; }
+
+// Ranked once at load from the (deterministic) mock views/favorites, plus a
+// cosmetic week-over-week change figure standing in for real analytics.
+const CATEGORY_TRENDS = CATEGORIES.map((c, idx) => {
+  const items = INVENTORY.filter((g) => g.category === c.id && g.status !== "not_available");
+  const score = items.reduce((sum, g) => sum + demandScore(g), 0);
+  const rand = seedRandom(idx * 91 + 5);
+  const changePct = Math.round(rand() * 65 - 15); // -15%..+50%
+  return { id: c.id, label: c.label, score, changePct, itemCount: items.length };
+}).sort((a, b) => b.score - a.score);
+
+function topTrendingItems(n) {
+  return [...INVENTORY]
+    .filter((g) => g.status === "available")
+    .sort((a, b) => demandScore(b) - demandScore(a))
+    .slice(0, n);
+}
+
+// Backroom (not_available) items in the hottest categories — candidates to
+// price and put out, since customer demand for that category is already high.
+function backroomPriorityItems() {
+  const hotIds = CATEGORY_TRENDS.slice(0, 3).map((c) => c.id);
+  return INVENTORY
+    .filter((g) => g.status === "not_available" && hotIds.includes(g.category))
+    .sort((a, b) => hotIds.indexOf(a.category) - hotIds.indexOf(b.category) || a.addedAt - b.addedAt);
+}
+
+function categoryAvgPrice(categoryId) {
+  const items = INVENTORY.filter((g) => g.category === categoryId && g.status !== "not_available");
+  if (!items.length) return null;
+  return Math.round(items.reduce((s, g) => s + g.priceKr, 0) / items.length);
+}
+
+// Simple heuristic: cheap + in demand → consider raising the price;
+// pricey + little interest → consider a cut. Stands in for real
+// price-elasticity analytics.
+function priceSuggestion(g) {
+  const avg = categoryAvgPrice(g.category);
+  if (!avg) return null;
+  const demand = demandScore(g);
+  if (g.priceKr < avg * 0.75 && demand > 40) return { type: "increase", avg };
+  if (g.priceKr > avg * 1.3 && demand < 15) return { type: "decrease", avg };
+  return { type: "ok", avg };
 }
 
 // ---------- Fake "vision AI" analysis ----------

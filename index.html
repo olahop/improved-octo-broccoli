@@ -34,10 +34,10 @@
           <span class="qa-label">Legg til vare</span>
           <span class="qa-sub">Ta bilder → KI fyller ut detaljer</span>
         </button>
-        <button class="quick-action alt" onclick="go('find')">
-          <span class="qa-icon">🔎</span>
-          <span class="qa-label">Finn vare</span>
-          <span class="qa-sub">Slå opp pris med kamera</span>
+        <button class="quick-action alt" onclick="go('trends')">
+          <span class="qa-icon">📈</span>
+          <span class="qa-label">Se trender</span>
+          <span class="qa-sub">Hva er hot akkurat nå?</span>
         </button>
       </div>
       <div class="section-divider"><span>Nylig lagt til</span></div>
@@ -55,6 +55,9 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="text" id="inv-search-input" placeholder="Søk etter merke, plagg …">
         </div>
+        <button class="icon-btn" title="Finn vare med kamera" onclick="openFindOverlay()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
       </div>
       <div class="status-tabs">
         <div class="status-tab active" data-status="all" onclick="setInvStatus('all')">Alle</div>
@@ -71,8 +74,8 @@
       </div>
     </section>
 
-    <!-- ===== FIND ===== -->
-    <section class="view" id="view-find"></section>
+    <!-- ===== TRENDS ===== -->
+    <section class="view" id="view-trends"></section>
 
   </main>
 
@@ -81,6 +84,9 @@
 
   <!-- ===== Add-garment capture wizard overlay ===== -->
   <div class="overlay" id="wizard-overlay"></div>
+
+  <!-- ===== Find-garment overlay (photo lookup, opened from Lager) ===== -->
+  <div class="overlay" id="find-overlay"></div>
 
   <!-- ===== Tab bar ===== -->
   <nav class="tabbar" id="tabbar">
@@ -95,9 +101,9 @@
     <button class="tab-fab" onclick="openAddWizard()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
-    <button class="tab-btn" data-tab="find" onclick="go('find')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
-      <span>Finn vare</span>
+    <button class="tab-btn" data-tab="trends" onclick="go('trends')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      <span>Trender</span>
     </button>
   </nav>
 

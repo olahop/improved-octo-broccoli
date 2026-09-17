@@ -262,6 +262,36 @@ main#view-root { flex: 1; position: relative; padding-bottom: 96px; }
 .section-divider span { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
 .section-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
 
+/* ---------- Trends ---------- */
+.trend-hint { font-size: 12.5px; color: var(--muted); margin: 0 0 12px; line-height: 1.5; }
+.trend-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 6px; }
+.trend-row-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.trend-row-label { font-size: 13.5px; font-weight: 700; }
+.trend-change { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 700; }
+.trend-change svg { width: 13px; height: 13px; }
+.trend-change.up { color: var(--sage); }
+.trend-change.down { color: var(--danger); }
+.trend-bar { height: 6px; border-radius: 4px; background: var(--surface-alt); overflow: hidden; }
+.trend-bar-fill { height: 100%; background: var(--accent); border-radius: 4px; }
+
+.hot-list { display: flex; flex-direction: column; gap: 8px; }
+.hot-item { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 10px; }
+.hot-item .inv-info { cursor: pointer; }
+.window-pick-btn {
+  flex-shrink: 0; border: 1px solid var(--border); background: var(--surface-alt); color: var(--text);
+  font-size: 11px; font-weight: 700; padding: 8px 10px; border-radius: var(--radius-sm); cursor: pointer;
+  white-space: nowrap;
+}
+.window-pick-btn.active { background: var(--sage-soft); border-color: var(--sage); color: #3f5b3f; }
+.price-flag { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700;
+  padding: 3px 8px; border-radius: 999px; margin-top: 2px; }
+.price-flag svg { width: 11px; height: 11px; }
+.price-flag.up { background: var(--sage-soft); color: #3f5b3f; }
+.price-flag.down { background: #F1E6C9; color: #7a5c14; }
+.chevron-hint { color: var(--muted); flex-shrink: 0; width: 16px; height: 16px; }
+.chevron-hint svg { width: 100%; height: 100%; }
+
 /* ---------- Tab bar ---------- */
 .tabbar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 460px;
   background: var(--surface); border-top: 1px solid var(--border); display: flex; align-items: center;
